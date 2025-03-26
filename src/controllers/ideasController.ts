@@ -7,13 +7,6 @@ import { validateSchema } from "../middleware/validateSchema";
 
 const ideasRouter = Router();
 
-// ideasRouter.get('/random', async (req: any, res: any) => {
-//     const count = await prisma.idea.count();
-//     const skip = Math.floor(Math.random() * count);
-//     const idea = await prisma.idea.findMany({ take: 1, skip });
-//     res.json(idea);
-// })
-
 ideasRouter.get('/random', authMiddleware, async (req: any, res: any) => {
     const idea = await prisma.idea.findFirst({
         orderBy: { id: 'asc' },
@@ -22,7 +15,7 @@ ideasRouter.get('/random', authMiddleware, async (req: any, res: any) => {
     res.json(idea);
 })
 
-ideasRouter.get('/', async (req: any, res: any) => {
+ideasRouter.get('/', authMiddleware, async (req: any, res: any) => {
     try {
         const { page = 1, limit = 10, search } = req.query;
 
@@ -74,7 +67,13 @@ ideasRouter.get('/:id', authMiddleware, async (req: any, res: any) => {
     const idea = await prisma.idea.findUnique({ where: { id: parseInt(id) } });
     if (!idea) return (res.status(400).json({ message: 'idea not found' }));
     res.json(idea);
+})
 
+ideasRouter.put('/:id', adminMiddleware,validateSchema(ideaSchema), async (req: any, res: any) => {
+    const { id } = req.params;
+    const { title, content } = req.body;
+    const idea = await prisma.idea.update({ where: { id: parseInt(id) }, data: { title, content } });
+    res.json(idea);
 })
 
 export default ideasRouter;
