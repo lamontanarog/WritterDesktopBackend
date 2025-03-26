@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "ESNext", // or "ES2022", "ES2020", etc.
+    "moduleResolution": "node",
+    "target": "ESNext",
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "ts-node": {
+    "esm": true // Enable ES module support for ts-node
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
