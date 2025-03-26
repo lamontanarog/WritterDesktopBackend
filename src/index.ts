@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import routes from './routes/index';
 import {PrismaClient} from '@prisma/client';
 import errorHandler from './middleware/errorHandler';
+import { setupSwagger } from './swagger';
 
 dotenv.config();
 
@@ -17,14 +18,13 @@ const prisma = new PrismaClient();
 
 app.use('/api', routes);
 app.use(errorHandler);
+setupSwagger(app);
 
-// app.get('/', (req, res) => {
-//     res.send('the api is running');
-// });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`server is running on port ${PORT}`);
+    console.log(`Documentacion de la Api: http://localhost:${PORT}/api-docs`);
 });
 
 export default prisma;

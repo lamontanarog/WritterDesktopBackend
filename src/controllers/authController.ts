@@ -3,9 +3,48 @@ import prisma from '../index';
 import { hashPassword, comparePassword, generateToken } from '../utils/auth';
 import { validateSchema } from '../middleware/validateSchema';
 import { registerSchema, loginSchema } from '../validators/authValidator';
+import authMiddleware from '../middleware/authMiddleware';
 
 const authRouter = Router();
 
+
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Registrar un nuevo usuario
+ *     tags: [Autenticación]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nombre del usuario
+ *                 example: "John Doe"
+ *                 minLength: 2
+ *               email:
+ *                 type: string
+ *                 description: Correo electrónica del usuario
+ *                 example: "tUWd3@example.com"
+ *                 format: email
+ *                 minLength: 6
+ *               password:
+ *                 type: string
+ *                 description: Contraseña del usuario
+ *                 example: "password123"
+ *                 minLength: 6
+ *     responses:
+ *       201:
+ *         description: Usuario registrado exitosamente
+ */
 
 authRouter.post('/register', validateSchema(registerSchema), async (req : any, res : any) => {
     const { name, email, password } = req.body;
@@ -19,6 +58,37 @@ authRouter.post('/register', validateSchema(registerSchema), async (req : any, r
     res.json({ message: "user created", token });
 })
 
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Iniciar sesión
+ *     tags: [Autenticación]
+ *     description: Autentica a un usuario con email y contraseña.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: test@email.com
+ *                 description: Correo electrónico del usuario
+ *               password:
+ *                 type: string
+ *                 example: 123456
+ *                 format: password
+ *                 description: Contraseña del usuario
+ *     responses:
+ *       200:
+ *         description: Inicio de sesión exitoso, devuelve el token de autenticación
+ *       401:
+ *         description: Credenciales incorrectas
+ */
+
 authRouter.post('/login', validateSchema(loginSchema), async (req: any, res: any) => {
     const { email, password } = req.body;
 
@@ -31,18 +101,25 @@ authRouter.post('/login', validateSchema(loginSchema), async (req: any, res: any
     const token = generateToken (user.id,  user.role);
     res.json({message:"login successful", token});
 });
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Obtener información del usuario actual
+ *     tags: [Autenticación]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Información del usuario
+ *       401:
+ *         description: No autorizado - Token inválido o no proporcionado
+ */
+authRouter.get('/me', authMiddleware, async (req: any, res: any) => {
 
-// authRouter.get('/me', async (req: any, res: any) => {
-//     const token = req.headers.authorization?.split(' ')[1];
-//     if (!token) return res.status(401).json({ error: 'unauthorized' });
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
 
-//     try {
-//         const decoded = jwt.verify(token, process.env.JWT_SECRET!); 
-//         const user = await prisma.user.findUnique({ where: { id: (decoded as any).userId } });
-//         res.json(user);
-//     } catch (error) {
-//         res.status(400).json({ message: 'token invalid' });
-//     }
-// })
+    res.json(user);
+})
 
 export default authRouter;
