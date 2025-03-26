@@ -22,10 +22,40 @@ ideasRouter.get('/random', authMiddleware, async (req: any, res: any) => {
     res.json(idea);
 })
 
-ideasRouter.get('/', authMiddleware, async (req: any, res: any) => {
-    const ideas = await prisma.idea.findMany();
-    res.json(ideas);
-})
+ideasRouter.get('/', async (req: any, res: any) => {
+    try {
+        const { page = 1, limit = 10, search } = req.query;
+
+        const skip = (Number(page) - 1) * Number(limit);
+        const take = Number(limit);
+
+        const where: any = {};
+        if (search) {
+            where.content = {
+                contains: search as string,
+                mode: 'insensitive', // Búsqueda sin distinción de mayúsculas/minúsculas
+            };
+        }
+
+        const ideas = await prisma.idea.findMany({
+            where,
+            skip,
+            take,
+            orderBy: { id: 'asc' },
+        });
+
+        const total = await prisma.idea.count({ where });
+
+        res.json({
+            data: ideas,
+            total,
+            page: Number(page),
+            totalPages: Math.ceil(total / Number(limit)),
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener ideas' });
+    }
+});
 
 ideasRouter.post('/', adminMiddleware, validateSchema(ideaSchema), async (req: any, res: any) => {
     const { title, content } = req.body;
