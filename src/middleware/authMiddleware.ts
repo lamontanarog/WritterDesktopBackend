@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import prisma from '../index';
+import {prisma} from '../index';
 
 interface AuthRequest extends Request {
     user?: any
@@ -26,7 +26,7 @@ const authMiddleware = async (req: AuthRequest | Request, res: Response | any, n
         if (!user) {
             return res.status(401).json({ message: 'user not found' })
         }
-        req.user = user;
+        (req as AuthRequest).user = user;
         void next();
     } catch (error) {
         res.status(400).json({ message: 'token invalid' });

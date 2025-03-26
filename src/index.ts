@@ -14,7 +14,7 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 
-const prisma = new PrismaClient();
+export const prisma = new PrismaClient();
 
 app.use('/api', routes);
 app.use(errorHandler);
@@ -27,4 +27,4 @@ app.listen(PORT, () => {
     console.log(`Documentacion de la Api: http://localhost:${PORT}/api-docs`);
 });
 
-export default prisma;
+export default app;

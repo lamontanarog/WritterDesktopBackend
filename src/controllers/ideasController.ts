@@ -1,5 +1,5 @@
 import { Router } from "express";
-import prisma from "../index";
+import {prisma} from "../index";
 import authMiddleware from "../middleware/authMiddleware";
 import adminMiddleware from "../middleware/adminMiddleware";
 import { ideaSchema } from "../validators/ideaValidator";

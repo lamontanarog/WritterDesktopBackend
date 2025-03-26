@@ -1,5 +1,5 @@
 import { Router } from "express";
-import prisma from "../index";
+import {prisma} from "../index";
 import authMiddleware from "../middleware/authMiddleware";
 import { textSchema } from "../validators/textValidator";
 import { validateSchema } from "../middleware/validateSchema";
