@@ -1,0 +1,39 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+
+const DATABASE_URL = process.env.DATABASE_URL;
+
+datasource db {
+  provider = "postgresql"
+  url      = DATABASE_URL
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  name     String
+  password String
+  role     String @default("USER")
+  texts    Text[]
+}
+
+model Idea {
+  id      Int    @id @default(autoincrement())
+  content String
+  title   String
+  texts   Text[]
+}
+
+model Text {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  ideaId    Int
+  content   String
+  time      Int
+  createdAt DateTime @default(now())
+  idea      Idea     @relation(fields: [ideaId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
