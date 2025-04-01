@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "tsx src/index.ts",
     "prisma:generate": "prisma generate --schema src/prisma/schema.prisma",
-    "seed": "tsx prisma/seed.ts",
+    "seed": "tsx src/prisma/seed.ts",
     "prisma:migrate": "prisma migrate dev --schema src/prisma/schema.prisma",
     "prisma:docker": "docker exec -it backend_app npx prisma migrate dev",
     "test": "jest"
