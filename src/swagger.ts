@@ -26,6 +26,10 @@ const options: swaggerJSDoc.Options = {
             {
                 url: `http://localhost:${PORT}`,
                 description: "Servidor de desarrollo"
+            },
+            {
+                url: `https://writterdesktopbackend.onrender.com`,
+                description: "Servidor de produccion"
             }
         ]
     },
