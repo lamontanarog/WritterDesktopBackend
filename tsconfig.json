@@ -1,17 +1,13 @@
 {
   "compilerOptions": {
-    "module": "ESNext", // or "ES2022", "ES2020", etc.
+    "module": "ESNext",  // ¡Clave para ESM!
     "moduleResolution": "node",
-    "target": "ESNext",
     "esModuleInterop": true,
+    "target": "ES2020",
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,
-    "skipLibCheck": true
+    "strict": true
   },
-  "ts-node": {
-    "esm": true // Enable ES module support for ts-node
-  },
-  "include": ["src/**/*"],
+  "include": ["src", "prisma"],
   "exclude": ["node_modules"]
 }
