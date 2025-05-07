@@ -150,7 +150,7 @@ ideasRouter.post('/', adminMiddleware, validateSchema(ideaSchema), async (req: a
  *       500:
  *         description: Error interno del servidor
  */
-ideasRouter.delete('/:id', adminMiddleware, validateSchema(ideaSchema), async (req: any, res: any) => {
+ideasRouter.delete('/:id', adminMiddleware, async (req: any, res: any) => {
     const { id } = req.params;
     await prisma.idea.delete({ where: { id: parseInt(id) } });
     res.json({ message: 'idea deleted' });
