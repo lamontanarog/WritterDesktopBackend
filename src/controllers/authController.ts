@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import {prisma} from '../index';
+import { Response } from 'express';
+import { prisma } from '../index';
 import { hashPassword, comparePassword, generateToken } from '../utils/auth';
 import { validateSchema } from '../middleware/validateSchema';
 import { registerSchema, loginSchema } from '../validators/authValidator';
-import authMiddleware from '../middleware/authMiddleware';
+import authMiddleware, { AuthRequest } from '../middleware/authMiddleware';
 
 const authRouter = Router();
 
@@ -46,7 +47,7 @@ const authRouter = Router();
  *         description: Usuario registrado exitosamente
  */
 
-authRouter.post('/register', validateSchema(registerSchema), async (req : any, res : any) => {
+authRouter.post('/register', validateSchema(registerSchema), async (req: any, res: any) => {
     const { name, email, password } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -93,13 +94,13 @@ authRouter.post('/login', validateSchema(loginSchema), async (req: any, res: any
     const { email, password } = req.body;
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(400).json({message: "credentials invalid"});
+    if (!user) return res.status(400).json({ message: "credentials invalid" });
 
     const isValid = await comparePassword(password, user.password);
-    if (!isValid) return res.status(400).json({message: "credentials invalid"});
+    if (!isValid) return res.status(400).json({ message: "credentials invalid" });
 
-    const token = generateToken (user.id,  user.role);
-    res.json({message:"login successful", token});
+    const token = generateToken(user.id, user.role);
+    res.json({ message: "login successful", token });
 });
 /**
  * @swagger
@@ -115,11 +116,21 @@ authRouter.post('/login', validateSchema(loginSchema), async (req: any, res: any
  *       401:
  *         description: No autorizado - Token inválido o no proporcionado
  */
-authRouter.get('/me', authMiddleware, async (req: any, res: any) => {
+authRouter.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ message: "No autorizado" });
+            return;
+        }
 
-    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        res.json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al obtener el usuario" });
+    }
+});
 
-    res.json(user);
-})
+
 
 export default authRouter;

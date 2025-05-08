@@ -3,6 +3,9 @@ import { prisma } from "../index";
 import authMiddleware from "../middleware/authMiddleware";
 import { textSchema } from "../validators/textValidator";
 import { validateSchema } from "../middleware/validateSchema";
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/authMiddleware';
+
 
 const textsRouter = Router();
 
@@ -43,7 +46,11 @@ const textsRouter = Router();
  *       500:
  *         description: Error interno del servidor
  */
-textsRouter.get('/', authMiddleware, async (req: any, res: any) => {
+textsRouter.get('/', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+    if (!req.user) {
+        res.status(403).json({ message: 'No autorizado' });
+        return;
+    }
     try {
         const { page = 1, limit = 10, ideaId, startDate, endDate } = req.query;
         const userId = req.user.id;
@@ -99,7 +106,11 @@ textsRouter.get('/', authMiddleware, async (req: any, res: any) => {
  *       500:
  *         description: Error interno del servidor
  */
-textsRouter.post('/', authMiddleware, validateSchema(textSchema), async (req: any, res: any) => {
+textsRouter.post('/', authMiddleware, validateSchema(textSchema), async (req: AuthRequest, res: Response): Promise<void> => {
+    if (!req.user) {
+        res.status(403).json({ message: 'No autorizado' });
+        return;
+    }
     try {
         const { content, time, ideaId } = req.body;
         const userId = req.user.id;
@@ -136,15 +147,24 @@ textsRouter.post('/', authMiddleware, validateSchema(textSchema), async (req: an
  *       500:
  *         description: Error interno del servidor
  */
-textsRouter.get('/:id', authMiddleware, async (req: any, res: any) => {
+textsRouter.get('/:id', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+    if (!req.user) {
+        res.status(403).json({ message: 'No autorizado' });
+        return;
+    }
     try {
         const { id } = req.params;
         const userId = req.user.id;
 
         const text = await prisma.text.findUnique({ where: { id: Number(id) }, include: { idea: true } });
 
-        if (!text) return res.status(404).json({ message: 'Texto no encontrado' });
-        if (text.userId !== userId) return res.status(403).json({ message: 'No autorizado' });
+        if (!text) {
+            res.status(404).json({ message: 'Texto no encontrado' });
+            return;
+        }
+        if (text.userId !== userId) {
+            res.status(403).json({ message: 'No autorizado' });
+        }
 
         res.json(text);
     } catch (error) {
@@ -189,7 +209,11 @@ textsRouter.get('/:id', authMiddleware, async (req: any, res: any) => {
  *       500:
  *         description: Error interno del servidor
  */
-textsRouter.put('/:id', authMiddleware, validateSchema(textSchema), async (req: any, res: any) => {
+textsRouter.put('/:id', authMiddleware, validateSchema(textSchema), async (req: AuthRequest, res: Response): Promise<void> => {
+    if (!req.user) {
+        res.status(403).json({ message: 'No autorizado' });
+        return;
+    }
     try {
         const { id } = req.params;
         const { content, time, ideaId } = req.body;
@@ -201,7 +225,8 @@ textsRouter.put('/:id', authMiddleware, validateSchema(textSchema), async (req: 
         });
 
         if (updated.count === 0) {
-            return res.status(403).json({ message: 'No autorizado o texto inexistente' });
+            res.status(403).json({ message: 'No autorizado o texto inexistente' });
+            return;
         }
 
         const updatedText = await prisma.text.findUnique({ where: { id: Number(id) } });
@@ -234,7 +259,11 @@ textsRouter.put('/:id', authMiddleware, validateSchema(textSchema), async (req: 
  *       500:
  *         description: Error interno del servidor
  */
-textsRouter.delete('/:id', authMiddleware, async (req: any, res: any) => {
+textsRouter.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+    if (!req.user) {
+        res.status(403).json({ message: 'No autorizado' });
+        return;
+    }
     try {
         const { id } = req.params;
         const userId = req.user.id;
@@ -244,7 +273,8 @@ textsRouter.delete('/:id', authMiddleware, async (req: any, res: any) => {
         });
 
         if (deleted.count === 0) {
-            return res.status(403).json({ message: 'No autorizado o texto inexistente' });
+            res.status(403).json({ message: 'No autorizado o texto inexistente' });
+            return;
         }
 
         res.json({ message: 'Texto eliminado correctamente' });
