@@ -1,6 +1,6 @@
-import { Router } from "express";
+import { Router, Response } from "express";
 import { prisma } from "../index";
-import authMiddleware from "../middleware/authMiddleware";
+import authMiddleware, { AuthRequest } from "../middleware/authMiddleware";
 import adminMiddleware from "../middleware/adminMiddleware";
 import { ideaSchema } from "../validators/ideaValidator";
 import { validateSchema } from "../middleware/validateSchema";
@@ -23,19 +23,22 @@ const ideasRouter = Router();
  *       500:
  *         description: Error interno del servidor
  */
-ideasRouter.get('/random', authMiddleware, async (req:any, res:any) => {
-  try {
-    const count = await prisma.idea.count();
-    if (count === 0) return res.status(404).json({ message: "No hay ideas disponibles" });
+ideasRouter.get('/random', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const count = await prisma.idea.count();
+        if (count === 0) {
+            res.status(404).json({ message: "No hay ideas disponibles" });
+            return;
+        }
 
-    const skip = Math.floor(Math.random() * count);
-    const idea = await prisma.idea.findFirst({ skip });
+        const skip = Math.floor(Math.random() * count);
+        const idea = await prisma.idea.findFirst({ skip });
 
-    res.json(idea);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error al obtener idea aleatoria" });
-  }
+        res.json(idea);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al obtener idea aleatoria" });
+    }
 });
 
 /**
@@ -65,35 +68,35 @@ ideasRouter.get('/random', authMiddleware, async (req:any, res:any) => {
  *       500:
  *         description: Error interno del servidor
  */
-ideasRouter.get('/', authMiddleware, async (req, res) => {
-  try {
-    const { page = 1, limit = 10, search } = req.query;
-    const skip = (Number(page) - 1) * Number(limit);
-    const take = Number(limit);
+ideasRouter.get('/', authMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const { page = 1, limit = 10, search } = req.query;
+        const skip = (Number(page) - 1) * Number(limit);
+        const take = Number(limit);
 
-    const where: any = {};
-    if (search) {
-      where.content = {
-        contains: String(search),
-        mode: 'insensitive',
-      };
+        const where: any = {};
+        if (search) {
+            where.content = {
+                contains: String(search),
+                mode: 'insensitive',
+            };
+        }
+
+        const [ideas, total] = await Promise.all([
+            prisma.idea.findMany({ where, skip, take, orderBy: { id: 'asc' } }),
+            prisma.idea.count({ where }),
+        ]);
+
+        res.json({
+            data: ideas,
+            total,
+            page: Number(page),
+            totalPages: Math.ceil(total / Number(limit)),
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al obtener ideas" });
     }
-
-    const [ideas, total] = await Promise.all([
-      prisma.idea.findMany({ where, skip, take, orderBy: { id: 'asc' } }),
-      prisma.idea.count({ where }),
-    ]);
-
-    res.json({
-      data: ideas,
-      total,
-      page: Number(page),
-      totalPages: Math.ceil(total / Number(limit)),
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error al obtener ideas" });
-  }
 });
 
 /**
@@ -118,15 +121,15 @@ ideasRouter.get('/', authMiddleware, async (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-ideasRouter.post('/', adminMiddleware, validateSchema(ideaSchema), async (req, res) => {
-  try {
-    const { title, content } = req.body;
-    const idea = await prisma.idea.create({ data: { title, content } });
-    res.status(201).json(idea);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error al crear la idea" });
-  }
+ideasRouter.post('/', adminMiddleware, validateSchema(ideaSchema), async (req: AuthRequest, res: Response) => {
+    try {
+        const { title, content } = req.body;
+        const idea = await prisma.idea.create({ data: { title, content } });
+        res.status(201).json(idea);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al crear la idea" });
+    }
 });
 
 /**
@@ -153,23 +156,25 @@ ideasRouter.post('/', adminMiddleware, validateSchema(ideaSchema), async (req, r
  *       500:
  *         description: Error interno del servidor
  */
-ideasRouter.delete('/:id', adminMiddleware, async (req:any, res:any) => {
-  const { id } = req.params;
-  try {
-    await prisma.idea.delete({ where: { id: parseInt(id) } });
-    res.json({ message: "Idea eliminada correctamente" });
-  } catch (error: any) {
-    if (error.code === "P2025") {
-      return res.status(404).json({ message: "Idea no encontrada" });
+ideasRouter.delete('/:id', adminMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+    const { id } = req.params;
+    try {
+        await prisma.idea.delete({ where: { id: parseInt(id) } });
+        res.json({ message: "Idea eliminada correctamente" });
+    } catch (error: any) {
+        if (error.code === "P2025") {
+            res.status(404).json({ message: "Idea no encontrada" });
+            return;
+        }
+        if (error.code === "P2003") {
+            res.status(400).json({
+                message: "No se puede eliminar la idea porque hay textos asociados.",
+            });
+            return;
+        }
+        console.error(error);
+        res.status(500).json({ message: "Error al eliminar la idea" });
     }
-    if (error.code === "P2003") {
-      return res.status(400).json({
-        message: "No se puede eliminar la idea porque hay textos asociados.",
-      });
-    }
-    console.error(error);
-    res.status(500).json({ message: "Error al eliminar la idea" });
-  }
 });
 
 /**
@@ -192,16 +197,19 @@ ideasRouter.delete('/:id', adminMiddleware, async (req:any, res:any) => {
  *       404:
  *         description: Idea no encontrada
  */
-ideasRouter.get('/:id', authMiddleware, async (req:any, res:any) => {
-  const { id } = req.params;
-  try {
-    const idea = await prisma.idea.findUnique({ where: { id: parseInt(id) } });
-    if (!idea) return res.status(404).json({ message: "Idea no encontrada" });
-    res.json(idea);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error al obtener la idea" });
-  }
+ideasRouter.get('/:id', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+    const { id } = req.params;
+    try {
+        const idea = await prisma.idea.findUnique({ where: { id: parseInt(id) } });
+        if (!idea) {
+            res.status(404).json({ message: "Idea no encontrada" });
+            return;
+        }
+        res.json(idea);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al obtener la idea" });
+    }
 });
 
 /**
@@ -232,22 +240,23 @@ ideasRouter.get('/:id', authMiddleware, async (req:any, res:any) => {
  *       500:
  *         description: Error interno del servidor
  */
-ideasRouter.put('/:id', adminMiddleware, validateSchema(ideaSchema), async (req:any, res:any) => {
-  const { id } = req.params;
-  const { title, content } = req.body;
-  try {
-    const updated = await prisma.idea.update({
-      where: { id: parseInt(id) },
-      data: { title, content },
-    });
-    res.json(updated);
-  } catch (error: any) {
-    if (error.code === "P2025") {
-      return res.status(404).json({ message: "Idea no encontrada" });
+ideasRouter.put('/:id', adminMiddleware, validateSchema(ideaSchema), async (req: AuthRequest, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { title, content } = req.body;
+    try {
+        const updated = await prisma.idea.update({
+            where: { id: parseInt(id) },
+            data: { title, content },
+        });
+        res.json(updated);
+    } catch (error: any) {
+        if (error.code === "P2025") {
+            res.status(404).json({ message: "Idea no encontrada" });
+            return;
+        }
+        console.error(error);
+        res.status(500).json({ message: "Error al editar la idea" });
     }
-    console.error(error);
-    res.status(500).json({ message: "Error al editar la idea" });
-  }
 });
 
 export default ideasRouter;
